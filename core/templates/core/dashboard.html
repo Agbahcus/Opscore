@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="page-header">
+    <div>
+      <div class="crumb">Admin Dashboard</div>
+      <h1 class="page-title">OpsCore overview</h1>
+      <div class="page-subtitle">Track stock, purchase orders, and supplier exposure across MedCore branches.</div>
+    </div>
+    <div class="top-actions">
+      <a class="btn btn-secondary" href="{% url 'inventory_view' %}">Inspect Inventory</a>
+      <a class="btn btn-primary" href="{% url 'purchase_order_create' %}">Create PO</a>
+    </div>
+  </div>
+
+  {% if low_stock_alerts %}
+    <div class="alert">
+      Low stock items need attention across branches. Review the alert list below before stockouts spread.
+    </div>
+  {% endif %}
+
+  <section class="grid-4">
+    <div class="card">
+      <div class="metric-label">Total Stock Value</div>
+      <p class="metric-value">&#8358;{{ total_stock_value|floatformat:2 }}</p>
+      <div class="metric-sub">Across all branches</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">Low Stock Alerts</div>
+      <p class="metric-value">{{ low_stock_count }}</p>
+      <div class="metric-sub">At or below reorder point</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">Active POs</div>
+      <p class="metric-value">{{ active_po_count }}</p>
+      <div class="metric-sub">Draft, sent, or in progress</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">Unpaid Balance</div>
+      <p class="metric-value">&#8358;{{ unpaid_supplier_balance|floatformat:2 }}</p>
+      <div class="metric-sub">Supplier liability</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="section-title">Low Stock Alerts</h2>
+        <div class="section-meta">Sorted by the most urgent branch/product combinations.</div>
+      </div>
+      <a class="btn btn-secondary" href="{% url 'inventory_view' %}?status=low_stock">Open inventory</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>SKU</th>
+            <th>Branch</th>
+            <th>Current Qty</th>
+            <th>Reorder Point</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in low_stock_alerts %}
+            <tr>
+              <td>{{ item.product.name }}</td>
+              <td class="mono">{{ item.product.sku }}</td>
+              <td>{{ item.branch.name }}</td>
+              <td class="{% if item.quantity == 0 %}qty-zero{% else %}qty-low{% endif %} mono">{{ item.quantity }}</td>
+              <td class="mono">{{ item.product.reorder_point }}</td>
+              <td><a class="btn btn-ghost" href="{% url 'purchase_order_create' %}?branch={{ item.branch_id }}&product={{ item.product_id }}">Create PO</a></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6">No low stock alerts right now.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="section-title">Active Purchase Orders</h2>
+        <div class="section-meta">Drafts and in-flight deliveries needing follow-up.</div>
+      </div>
+      <a class="btn btn-secondary" href="{% url 'purchase_orders_list' %}">View all</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>PO Number</th>
+            <th>Branch</th>
+            <th>Supplier</th>
+            <th>Status</th>
+            <th>Total Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for po in active_pos %}
+            <tr>
+              <td class="mono"><a href="{% url 'purchase_order_detail' po.pk %}">{{ po.po_number }}</a></td>
+              <td>{{ po.branch.name }}</td>
+              <td>{{ po.supplier.name }}</td>
+              <td><span class="badge status-{{ po.status }}"><span class="dot" style="background: currentColor;"></span>{{ po.status }}</span></td>
+              <td class="mono">&#8358;{{ po.total_value|floatformat:2 }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5">No active purchase orders.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="section-title">Branch Stock Health</h2>
+        <div class="section-meta">Quick scan of inventory balance by branch.</div>
+      </div>
+      <a class="btn btn-secondary" href="{% url 'branches_list' %}">Branches</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Branch</th>
+            <th>In Stock</th>
+            <th>Low Stock</th>
+            <th>Out of Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in branch_health %}
+            <tr>
+              <td>{{ item.branch.name }}</td>
+              <td class="mono">{{ item.in_stock }}</td>
+              <td class="mono">{{ item.low_stock }}</td>
+              <td class="mono">{{ item.out_of_stock }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

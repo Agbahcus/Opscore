@@ -1,0 +1,17 @@
+{% if products %}
+  {% for product in products %}
+    <button
+      type="button"
+      class="suggestion-item"
+      data-product-choice
+      data-prefix="{{ prefix }}"
+      data-product-id="{{ product.id }}"
+      data-product-label="{{ product.name }} ({{ product.sku }})"
+    >
+      <strong>{{ product.name }}</strong>
+      <span style="display:block;color:var(--text-muted);font-size:12px;">{{ product.sku }} · {{ product.category.name }}</span>
+    </button>
+  {% endfor %}
+{% elif query %}
+  <div class="suggestion-item" style="cursor:default;">No products match "{{ query }}"</div>
+{% endif %}

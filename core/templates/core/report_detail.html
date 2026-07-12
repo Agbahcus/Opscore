@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="page-header">
+    <div>
+      <div class="crumb">Daily Report</div>
+      <h1 class="page-title">{{ branch.name }} - {{ report.report_date }}</h1>
+      <div class="page-subtitle">Opening stock, receipts, adjustments, and closing stock for the selected day.</div>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <button class="btn btn-primary" type="submit">Generate / Refresh</button>
+    </form>
+  </div>
+
+  <section class="grid-4">
+    <div class="card"><div class="metric-label">Opening Value</div><p class="metric-value">&#8358;{{ report.opening_stock_value|floatformat:2 }}</p></div>
+    <div class="card"><div class="metric-label">Received Today</div><p class="metric-value">&#8358;{{ report.receipts_value|floatformat:2 }}</p></div>
+    <div class="card"><div class="metric-label">Adjustments</div><p class="metric-value">&#8358;{{ report.adjustments_value|floatformat:2 }}</p></div>
+    <div class="card"><div class="metric-label">Closing Value</div><p class="metric-value">&#8358;{{ report.closing_stock_value|floatformat:2 }}</p></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="section-title">Line Items</h2>
+        <div class="section-meta">Daily snapshot by product, including any receipts or adjustments.</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Opening Qty</th>
+            <th>Received</th>
+            <th>Adjusted</th>
+            <th>Closing Qty</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in report.lines.all %}
+            <tr>
+              <td>{{ line.product.name }}</td>
+              <td class="mono">{{ line.opening_qty }}</td>
+              <td class="mono">{{ line.received_qty }}</td>
+              <td class="mono">{{ line.adjusted_qty }}</td>
+              <td class="mono">{{ line.closing_qty }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5">No report lines available for this date.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

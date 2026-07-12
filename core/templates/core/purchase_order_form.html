@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="page-header">
+    <div>
+      <div class="crumb">Create Purchase Order</div>
+      <h1 class="page-title">New PO</h1>
+      <div class="page-subtitle">Search for products, build line items, and send the order in one pass.</div>
+    </div>
+    <div class="top-actions">
+      <a class="btn btn-secondary" href="{% url 'purchase_orders_list' %}">Back</a>
+      <a class="btn btn-primary" href="{% url 'inventory_view' %}">Open Inventory</a>
+    </div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <section class="panel" style="padding:16px;">
+      <div class="panel-head" style="padding:0 0 14px;">
+        <div>
+          <h2 class="section-title">PO Details</h2>
+          <div class="section-meta">Select the branch and supplier before adding items.</div>
+        </div>
+      </div>
+      {{ meta_form.as_p }}
+    </section>
+
+    <section class="panel" style="padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
+        <h2 class="section-title" style="margin:0;">Line Items</h2>
+        <button class="btn btn-secondary" type="button" id="add-line-item"><i data-lucide="plus"></i>Add Line</button>
+      </div>
+      {{ line_formset.management_form }}
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Quantity</th>
+            <th>Unit Price</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="line-items-body">
+          {% for form in line_formset %}
+            <tr data-form-row>
+              <td style="position:relative;min-width:320px;">
+                {{ form.product_id }}
+                <input
+                  type="text"
+                  name="{{ form.product_query.html_name }}"
+                  id="{{ form.product_query.id_for_label }}"
+                  value="{{ form.product_query.value|default:'' }}"
+                  placeholder="Search by name or SKU"
+                  hx-get="{% url 'product_search' %}?prefix={{ form.prefix }}"
+                  hx-trigger="keyup changed delay:300ms"
+                  hx-target="#product-suggestions-{{ form.prefix }}"
+                  hx-swap="innerHTML"
+                  autocomplete="off"
+                >
+                <div id="product-suggestions-{{ form.prefix }}" class="suggestions"></div>
+                {% if form.product_query.errors %}{{ form.product_query.errors }}{% endif %}
+                {% if form.product_id.errors %}{{ form.product_id.errors }}{% endif %}
+                {{ form.DELETE }}
+              </td>
+              <td>{{ form.quantity_ordered }}</td>
+              <td>{{ form.unit_price }}</td>
+              <td>
+                <button class="btn btn-secondary" type="button" data-remove-line>Remove</button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <template id="empty-line-template">
+        <tr data-form-row>
+          <td style="position:relative;min-width:320px;">
+            __PRODUCT_ID__
+            <input
+              type="text"
+              name="__PRODUCT_QUERY_NAME__"
+              id="__PRODUCT_QUERY_ID__"
+              value=""
+              placeholder="Search by name or SKU"
+              hx-get="{% url 'product_search' %}?prefix=__PREFIX__"
+              hx-trigger="keyup changed delay:300ms"
+              hx-target="#product-suggestions-__PREFIX__"
+              hx-swap="innerHTML"
+              autocomplete="off"
+            >
+            <div id="product-suggestions-__PREFIX__" class="suggestions"></div>
+            __DELETE__
+          </td>
+          <td><input type="number" name="__QTY_NAME__" min="1"></td>
+          <td><input type="number" name="__PRICE_NAME__" min="0" step="0.01"></td>
+          <td><button class="btn btn-secondary" type="button" data-remove-line>Remove</button></td>
+        </tr>
+      </template>
+    </section>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap;">
+      <div class="section-meta">Tip: click a suggestion to populate the product id.</div>
+      <button class="btn btn-primary" type="submit">Save PO</button>
+    </div>
+  </form>
+  <script>
+    (function () {
+      const body = document.getElementById('line-items-body');
+      const addButton = document.getElementById('add-line-item');
+      const totalFormsInput = document.getElementById('id_form-TOTAL_FORMS');
+      const template = document.getElementById('empty-line-template').innerHTML;
+
+      function renumber() {
+        const rows = body.querySelectorAll('[data-form-row]');
+        rows.forEach((row, index) => {
+          row.querySelectorAll('input, select, textarea').forEach((field) => {
+            if (field.name) field.name = field.name.replace(/form-\d+-/g, `form-${index}-`);
+            if (field.id) field.id = field.id.replace(/form-\d+-/g, `form-${index}-`);
+          });
+          const suggestion = row.querySelector('.suggestions');
+          if (suggestion && suggestion.id) {
+            suggestion.id = suggestion.id.replace(/form-\d+-/g, `form-${index}-`);
+          }
+          const removeBtn = row.querySelector('[data-remove-line]');
+          if (removeBtn) {
+            removeBtn.dataset.index = index;
+          }
+        });
+        totalFormsInput.value = rows.length;
+      }
+
+      function addRow() {
+        const index = parseInt(totalFormsInput.value, 10);
+        const html = template
+          .replaceAll('__PREFIX__', `form-${index}`)
+          .replaceAll('__PRODUCT_ID__', `<input type="hidden" name="form-${index}-product_id" id="id_form-${index}-product_id">`)
+          .replaceAll('__PRODUCT_QUERY_NAME__', `form-${index}-product_query`)
+          .replaceAll('__PRODUCT_QUERY_ID__', `id_form-${index}-product_query`)
+          .replaceAll('__QTY_NAME__', `form-${index}-quantity_ordered`)
+          .replaceAll('__PRICE_NAME__', `form-${index}-unit_price`)
+          .replaceAll('__DELETE__', `<input type="hidden" name="form-${index}-DELETE" id="id_form-${index}-DELETE" value="">`);
+        body.insertAdjacentHTML('beforeend', html);
+        totalFormsInput.value = index + 1;
+      }
+
+      body.addEventListener('click', function (event) {
+        const button = event.target.closest('[data-remove-line]');
+        if (!button) return;
+        const row = button.closest('[data-form-row]');
+        const deleteField = row.querySelector('input[name$="-DELETE"]');
+        if (deleteField) {
+          deleteField.value = 'on';
+        }
+        row.style.display = 'none';
+      });
+
+      addButton.addEventListener('click', addRow);
+      renumber();
+    })();
+  </script>
+{% endblock %}

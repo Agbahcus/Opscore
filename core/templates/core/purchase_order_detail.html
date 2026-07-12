@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="page-header">
+    <div>
+      <div class="crumb">Purchase Order Detail</div>
+      <h1 class="page-title">{{ po.po_number }}</h1>
+      <div class="page-subtitle">{{ po.branch.name }} &middot; {{ po.supplier.name }}</div>
+    </div>
+    <div class="top-actions">
+      <a class="btn btn-secondary" href="{% url 'purchase_orders_list' %}">Back to orders</a>
+      <span class="badge status-{{ po.status }}"><span class="dot" style="background: currentColor;"></span>{{ po.status }}</span>
+    </div>
+  </div>
+
+  <section class="grid-4">
+    <div class="card"><div class="metric-label">Branch</div><p class="metric-value" style="font-size:18px;">{{ po.branch.name }}</p></div>
+    <div class="card"><div class="metric-label">Supplier</div><p class="metric-value" style="font-size:18px;">{{ po.supplier.name }}</p></div>
+    <div class="card"><div class="metric-label">Created</div><p class="metric-value" style="font-size:18px;">{{ po.created_at|date:"Y-m-d" }}</p></div>
+    <div class="card"><div class="metric-label">Total Value</div><p class="metric-value">&#8358;{{ po.total_value|floatformat:2 }}</p></div>
+  </section>
+
+  <form method="post">
+    {% csrf_token %}
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2 class="section-title">Line Items</h2>
+          <div class="section-meta">Update received quantities against the original order.</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Ordered</th>
+              <th>Received</th>
+              <th>Outstanding</th>
+              <th>Unit Price</th>
+              <th>Receive More</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in po.items.all %}
+              <tr>
+                <td>{{ item.product.name }}</td>
+                <td class="mono">{{ item.quantity_ordered }}</td>
+                <td class="mono">{{ item.quantity_received }}</td>
+                <td class="mono">{{ item.outstanding_quantity }}</td>
+                <td class="mono">&#8358;{{ item.unit_price|floatformat:2 }}</td>
+                <td><input type="number" min="0" name="received_{{ item.pk }}" value="0" style="width:90px;"></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-primary" type="submit">Mark Delivery Received</button>
+    </div>
+  </form>
+{% endblock %}

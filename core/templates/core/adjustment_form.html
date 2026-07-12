@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="page-header">
+    <div>
+      <div class="muted">Manual Stock Adjustment</div>
+      <h1 class="page-title">Create Adjustment</h1>
+    </div>
+  </div>
+
+  <section class="panel" style="padding:16px;">
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button class="btn btn-primary" type="submit">Save Adjustment</button>
+    </form>
+  </section>
+{% endblock %}

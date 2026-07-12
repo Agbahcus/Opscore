@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="page-header">
+    <div>
+      <div class="muted">Daily Reports</div>
+      <h1 class="page-title">Reports</h1>
+    </div>
+  </div>
+
+  <section class="panel">
+    <table>
+      <thead>
+        <tr>
+          <th>Branch</th>
+          <th>Date</th>
+          <th>Closing Value</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for report in reports %}
+          <tr>
+            <td>{{ report.branch.name }}</td>
+            <td>{{ report.report_date }}</td>
+            <td class="mono">&#8358;{{ report.closing_stock_value|floatformat:2 }}</td>
+            <td><a href="{% url 'report_detail' report.branch_id report.report_date|date:'Y-m-d' %}">View</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endblock %}

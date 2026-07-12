@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="page-header">
+    <div>
+      <div class="muted">Product Catalog</div>
+      <h1 class="page-title">Products</h1>
+    </div>
+    <a class="btn btn-primary" href="{% url 'purchase_order_create' %}">Create PO</a>
+  </div>
+
+  <section class="panel">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>SKU</th>
+          <th>Category</th>
+          <th>Unit</th>
+          <th>Unit Price</th>
+          <th>Reorder Point</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+          <tr>
+            <td><a href="{% url 'product_detail' product.pk %}">{{ product.name }}</a></td>
+            <td class="mono">{{ product.sku }}</td>
+            <td>{{ product.category.name }}</td>
+            <td>{{ product.unit }}</td>
+            <td class="mono">&#8358;{{ product.unit_price|floatformat:2 }}</td>
+            <td class="mono">{{ product.reorder_point }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endblock %}

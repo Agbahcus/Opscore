@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load core_extras %}
+{% block content %}
+  <div class="page-header">
+    <div>
+      <div class="crumb">Cross-Branch Inventory</div>
+      <h1 class="page-title">Inventory</h1>
+      <div class="page-subtitle">Compare stock side by side across branches and jump straight into replenishment.</div>
+    </div>
+    <div class="top-actions">
+      <a class="btn btn-secondary" href="{% url 'reports_index' %}">Daily reports</a>
+      <a class="btn btn-primary" href="{% url 'adjustment_create' %}">Adjustment</a>
+    </div>
+  </div>
+
+  <form method="get" class="panel" style="padding:16px;margin-bottom:20px;">
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;">
+      <div>
+        <label class="muted" style="display:block;margin-bottom:6px;">Branch</label>
+        <select name="branch">
+          <option value="">All branches</option>
+          {% for branch in branches %}
+            <option value="{{ branch.id }}" {% if filters.branch == branch.id|stringformat:"s" %}selected{% endif %}>{{ branch.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="muted" style="display:block;margin-bottom:6px;">Category</label>
+        <select name="category">
+          <option value="">All categories</option>
+          {% for category_id, category_name in categories %}
+            <option value="{{ category_id }}" {% if filters.category == category_id|stringformat:"s" %}selected{% endif %}>{{ category_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="muted" style="display:block;margin-bottom:6px;">Status</label>
+        <select name="status">
+          <option value="all" {% if filters.status == 'all' %}selected{% endif %}>All</option>
+          <option value="in_stock" {% if filters.status == 'in_stock' %}selected{% endif %}>In Stock</option>
+          <option value="low_stock" {% if filters.status == 'low_stock' %}selected{% endif %}>Low Stock</option>
+          <option value="out_of_stock" {% if filters.status == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:end;gap:8px;">
+        <button class="btn btn-primary" type="submit">Apply Filters</button>
+        <a class="btn btn-secondary" href="{% url 'inventory_view' %}">Reset</a>
+      </div>
+    </div>
+  </form>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="section-title">Cross-Branch Matrix</h2>
+        <div class="section-meta">Click a quantity to prefill a replenishment PO for that branch.</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>SKU</th>
+            <th>Category</th>
+            {% for branch in branches %}
+              <th>{{ branch.name }}</th>
+            {% endfor %}
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in products %}
+            <tr>
+              <td><a href="{% url 'product_detail' row.product_id %}">{{ row.product_name }}</a></td>
+              <td class="mono">{{ row.product_sku }}</td>
+              <td>{{ row.product_category }}</td>
+              {% for branch in branches %}
+                <td>
+                  {% with inventory=row.inventories|get_item:branch.id %}
+                    {% if inventory %}
+                      <a href="{% url 'purchase_order_create' %}?branch={{ branch.id }}&product={{ row.product_id }}" style="text-decoration:none;">
+                        <span class="{% if inventory.quantity == 0 %}qty-zero{% elif inventory.quantity <= row.reorder_point %}qty-low{% else %}qty-ok{% endif %} mono">{{ inventory.quantity }}</span>
+                      </a>
+                    {% else %}
+                      <a href="{% url 'purchase_order_create' %}?branch={{ branch.id }}&product={{ row.product_id }}" style="text-decoration:none;">
+                        <span class="qty-zero mono">0</span>
+                      </a>
+                    {% endif %}
+                  {% endwith %}
+                </td>
+              {% endfor %}
+              <td>
+                <span class="badge status-{{ row.worst_status }}"><span class="dot" style="background: currentColor;"></span>{{ row.worst_status }}</span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

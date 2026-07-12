@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="page-header">
+    <div>
+      <div class="crumb">Branch Detail</div>
+      <h1 class="page-title">{{ branch.name }}</h1>
+      <div class="page-subtitle">{{ branch.location }} &middot; Managed by {{ branch.manager_name }}</div>
+    </div>
+    <div class="top-actions">
+      <a class="btn btn-secondary" href="{% url 'inventory_view' %}?branch={{ branch.id }}">View inventory matrix</a>
+      <a class="btn btn-primary" href="{% url 'purchase_order_create' %}?branch={{ branch.id }}">Create PO</a>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="section-title">Inventory</h2>
+        <div class="section-meta">Branch-level quantities with current stock status.</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>SKU</th>
+            <th>Category</th>
+            <th>Qty</th>
+            <th>Reorder Point</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in inventories %}
+            <tr>
+              <td>{{ inv.product.name }}</td>
+              <td class="mono">{{ inv.product.sku }}</td>
+              <td>{{ inv.product.category.name }}</td>
+              <td class="mono">{{ inv.quantity }}</td>
+              <td class="mono">{{ inv.product.reorder_point }}</td>
+              <td><span class="badge status-{{ inv.stock_status }}"><span class="dot" style="background: currentColor;"></span>{{ inv.stock_status }}</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="section-title">Recent Stock Movements</h2>
+        <div class="section-meta">Last 20 movements for this branch.</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Product</th>
+            <th>Type</th>
+            <th>Change</th>
+            <th>Reference</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for movement in movements %}
+            <tr>
+              <td>{{ movement.created_at|date:"Y-m-d H:i" }}</td>
+              <td>{{ movement.product.name }}</td>
+              <td>{{ movement.movement_type }}</td>
+              <td class="mono">{{ movement.quantity_change|floatformat:0 }}</td>
+              <td class="mono">{{ movement.reference|default:"-" }}</td>
+              <td>{{ movement.notes|default:"-" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6">No movements recorded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

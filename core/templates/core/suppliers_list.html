@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="page-header">
+    <div>
+      <div class="muted">Supplier Management</div>
+      <h1 class="page-title">Suppliers</h1>
+    </div>
+  </div>
+
+  <section class="panel">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Contact</th>
+          <th>Phone</th>
+          <th>Outstanding</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for supplier in suppliers %}
+          <tr>
+            <td><a href="{% url 'supplier_detail' supplier.pk %}">{{ supplier.name }}</a></td>
+            <td>{{ supplier.contact_name }}</td>
+            <td>{{ supplier.phone }}</td>
+            <td class="mono {% if supplier.outstanding_balance > 0 %}qty-zero{% endif %}">&#8358;{{ supplier.outstanding_balance|floatformat:2 }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endblock %}

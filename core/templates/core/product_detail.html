@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="page-header">
+    <div>
+      <div class="crumb">Product Detail</div>
+      <h1 class="page-title">{{ product.name }}</h1>
+      <div class="page-subtitle">{{ product.sku }} &middot; {{ product.category.name }} &middot; Reorder point {{ product.reorder_point }}</div>
+    </div>
+    <div class="top-actions">
+      <a class="btn btn-secondary" href="{% url 'inventory_view' %}">Inventory matrix</a>
+      <a class="btn btn-primary" href="{% url 'purchase_order_create' %}?product={{ product.id }}">Create PO</a>
+    </div>
+  </div>
+
+  <section class="grid-4">
+    <div class="card"><div class="metric-label">SKU</div><p class="metric-value" style="font-size:18px;">{{ product.sku }}</p></div>
+    <div class="card"><div class="metric-label">Category</div><p class="metric-value" style="font-size:18px;">{{ product.category.name }}</p></div>
+    <div class="card"><div class="metric-label">Unit Price</div><p class="metric-value">&#8358;{{ product.unit_price|floatformat:2 }}</p></div>
+    <div class="card"><div class="metric-label">Reorder Point</div><p class="metric-value">{{ product.reorder_point }}</p></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="section-title">Stock Across Branches</h2>
+        <div class="section-meta">See where this product is healthy, low, or out.</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Branch</th>
+            <th>Qty</th>
+            <th>Status</th>
+            <th>Last Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in branch_rows %}
+            <tr>
+              <td>{{ row.branch.name }}</td>
+              <td class="mono">{{ row.quantity }}</td>
+              <td><span class="badge status-{{ row.stock_status }}"><span class="dot" style="background: currentColor;"></span>{{ row.stock_status }}</span></td>
+              <td>{{ row.last_updated|date:"Y-m-d H:i" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4">No branch inventory records yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="section-title">Movement History</h2>
+        <div class="section-meta">Recent movement trail for this product.</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Branch</th>
+            <th>Type</th>
+            <th>Change</th>
+            <th>Reference</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for movement in movements %}
+            <tr>
+              <td>{{ movement.created_at|date:"Y-m-d H:i" }}</td>
+              <td>{{ movement.branch.name }}</td>
+              <td>{{ movement.movement_type }}</td>
+              <td class="mono">{{ movement.quantity_change|floatformat:0 }}</td>
+              <td class="mono">{{ movement.reference|default:"-" }}</td>
+              <td>{{ movement.notes|default:"-" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6">No movements recorded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}
