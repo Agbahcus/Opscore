@@ -1,55 +1,59 @@
-1. One-line description — Branch-level inventory, purchase order, supplier payment, and stock health tracking for multi-branch retail operations.
+# OpsCore
 
-2. Live demo link and one screenshot or GIF of the most interesting screen
+Branch inventory, purchase order, supplier payment, and stock health tracking for a multi-branch retail operations team.
+
+## Live demo
 
 Live demo: https://example.com
 
-![Dashboard screenshot](docs/dashboard.png)
 
-3. The problem — 2–3 sentences on the real-world pain this solves, written from the user's perspective not the developer's
 
-I need a single view of branch stock health, open purchase orders, and supplier exposure without flipping between spreadsheets and email threads.
-When a branch runs low on stock I need a fast way to turn that into a PO, confirm receipts, and keep supplier balances accurate.
-This eliminates manual reconciliation of branch inventories, purchase orders, and payment liability.
+## Problem
 
-4. Architecture overview — explain the key technical decisions and why they were made. For example: why multi-tenancy was implemented at the schema level rather than row level, or why Celery was chosen for webhook processing instead of synchronous handling. This section should read like a decision log, not a feature list.
+Operations managers need one place to see branch stock health, outstanding supplier obligations, and active purchase orders without switching between spreadsheets, emails, and phone notes.
+When a branch hits its reorder point, the team must raise a PO, receive goods, and update inventory without losing the paper trail.
+This system removes the manual reconciliation burden and keeps purchase order receipts, supplier payments, and branch inventory aligned.
 
-This is a single-schema Django application with normalized branch, product, PO, inventory, and payment tables. I kept scope-level isolation at the application model layer instead of row-level tenant filtering because the system is designed for one business with multiple branches, not multi-tenant SaaS. That simplifies queries and avoids introducing tenant-ID middleware across every model.
+## Architecture overview
 
-I chose server-rendered Django templates over a JS frontend because the product is operational tooling for back-office users and reducing UI complexity shortens delivery. Form handling, PO creation, receipt confirmation, and inventory status are all implemented in the request/response cycle.
+This is a single-schema Django app built for one business with multiple branches. I deliberately avoided tenant middleware and row-level scope filters because the product is not a multi-tenant SaaS platform; that choice keeps model relationships straightforward and avoids introducing tenant keys into every query.
 
-Static files are served with Whitenoise inside a container to keep deployment simple. Gunicorn is the WSGI server for Northflank container compatibility because it is stable, easy to configure, and avoids the extra layer of uWSGI config.
+The app uses server-rendered Django templates for click-to-action operations because the target users are back-office staff who need fast, reliable forms rather than a single-page app. That reduces client-side complexity and keeps the deployment footprint smaller.
 
-Daily report generation uses explicit aggregation logic in the model layer instead of relying on a separate reporting pipeline. That decision preserves consistency between live inventory state and report values while the current load is small enough for on-demand generation.
+Inventory and reporting logic live in the model layer, not in a separate analytics pipeline. This means `BranchInventory`, `StockMovement`, `PurchaseOrder`, and `DailyReport` all stay consistent in the same database transaction domain, which is sufficient for the expected workload.
 
-5. Tech stack — list each technology with one sentence explaining why it was chosen over the obvious alternative. Not just 'Django' — 'Django because the ORM's annotation system allowed complex tenant-scoped aggregations without raw SQL.'
+Deployment is container-first with Gunicorn and Whitenoise. I chose that stack because it supports Northflank deployment cleanly and avoids extra reverse-proxy or static-hosting configuration for an initial launch.
 
-- Python 3.12: chosen for current Django support and consistent container runtime behavior.
-- Django: chosen for its ORM and built-in admin, which let me express branch/product/PO aggregations without raw SQL and ship a working operations UI quickly.
-- Gunicorn: chosen over Windows-native servers because it is the standard WSGI process manager for Linux containers and works cleanly on Northflank.
-- Whitenoise: chosen over separate static hosting because it keeps the container self-contained and avoids extra CDN configuration for the initial deployment.
-- SQLite: chosen for local development and demo deployment because it requires no external database service, with a clear path to PostgreSQL later.
+## Tech stack
 
-6. Local setup — minimal, copy-pasteable, no unnecessary explanation
+- Python 3.12: current Django support and stable container runtime behavior.
+- Django: chosen because the ORM handles inventory, supplier, and PO aggregations without raw SQL and because built-in admin accelerates operational data management.
+- Gunicorn: chosen as the standard WSGI server for Linux containers and because it is simpler to configure than uWSGI for this project.
+- Whitenoise: chosen over external static hosting so the container can serve static assets directly and keep deployment simple.
+- SQLite: chosen for local development and demo deployment because it requires no external database service, with a path to PostgreSQL for production.
 
+## Local setup
+
+```bash
 python -m venv .venv
 .venv\Scripts\activate
 python -m pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
+```
 
-7. Key engineering challenges — 2–3 specific hard problems encountered and how they were solved. Be specific: not 'I handled webhooks' but 'Paystack occasionally sends duplicate webhook events; I solved this with idempotency keys stored in Redis with a 24-hour TTL, preventing double charges on retried deliveries.'
+## Key engineering challenges
 
-- Supplier outstanding balance needed to include received PO line values and supplier payments without multiple Python loops, so I implemented `Supplier.total_po_value` with ORM `ExpressionWrapper` and `Sum` to compute the aggregate in the database.
-- Receipt processing had to update inventory, stock movement history, and PO status atomically, so I wrapped the POST handler in `transaction.atomic()` and limited `quantity_received` with a `min(..., quantity_ordered)` guard.
-- Branch inventory health needed a worst-case stock status across products and branches, so I pre-fetched related branch and product rows and computed inventory status in Python after filtering, instead of issuing one query per branch/product pair.
+- Supplier exposure needed live PO totals and payment history in a single view, so `Supplier.total_po_value` uses `ExpressionWrapper` and `Sum` to compute committed PO value in the database.
+- Receiving goods required updating inventory, writing stock movement history, and changing PO status atomically, so the receipt flow is wrapped in `transaction.atomic()` and each received quantity is capped with `min(..., quantity_ordered)`.
+- Branch inventory health needed a worst-case stock status across product/branch intersections without generating one query per cell, so inventory rows are pre-fetched and status is computed in Python per branch-product pair.
 
-8. What's next — 2–3 honest next steps, not a fantasy roadmap
+## What's next
 
-- Replace SQLite with PostgreSQL for production and add migration testing for report queries.
-- Add authentication and role-based access for purchasing, receiving, and supplier payment functions.
-- Move daily report generation to a background job if report workload grows beyond on-demand aggregation.
+- Replace SQLite with PostgreSQL for production and add schema migration tests for report queries.
+- Add authentication and role-based access controls for purchasing, receiving, and supplier payment actions.
+- Move daily report generation to a scheduled background job if report volume exceeds on-demand aggregation performance.
 
-9. Author line — Divine Agbah, link to Twitter/X and LinkedIn
+## Author
 
 Divine Agbah — https://twitter.com/divineagbah — https://linkedin.com/in/divineagbah
