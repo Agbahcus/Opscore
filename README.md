@@ -4,7 +4,7 @@ Branch inventory, purchase order, supplier payment, and stock health tracking fo
 
 ## Live demo
 
-Live demo: https://example.com
+Live demo: https://opscore.pythonanywhere.com/
 
 
 
@@ -48,11 +48,7 @@ python manage.py runserver
 - Receiving goods required updating inventory, writing stock movement history, and changing PO status atomically, so the receipt flow is wrapped in `transaction.atomic()` and each received quantity is capped with `min(..., quantity_ordered)`.
 - Branch inventory health needed a worst-case stock status across product/branch intersections without generating one query per cell, so inventory rows are pre-fetched and status is computed in Python per branch-product pair.
 
-## What's next
 
-- Replace SQLite with PostgreSQL for production and add schema migration tests for report queries.
-- Add authentication and role-based access controls for purchasing, receiving, and supplier payment actions.
-- Move daily report generation to a scheduled background job if report volume exceeds on-demand aggregation performance.
 
 ## Author
 
